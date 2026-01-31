@@ -2,6 +2,7 @@ import { getTenantConfig } from "@/config/tenants";
 import { getTheme } from "@/lib/theme/get-theme";
 import { themeToCss } from "@/lib/theme/theme-to-css";
 import { TenantNav } from "@/components/tenant-nav";
+import { ThemeCustomizer } from "@/components/theme-customizer";
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -36,6 +37,10 @@ export default async function TenantLayout({
       <div className="min-h-screen bg-background text-foreground">
         <TenantNav tenantSlug={config.slug} tenantName={config.name} />
         <main>{children}</main>
+        <ThemeCustomizer
+          tenantSlug={config.slug}
+          initialPrimaryColor={config.themeRequest.theme}
+        />
       </div>
     </>
   );

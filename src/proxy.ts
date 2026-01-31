@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 // This list is used only to skip rewriting for non-tenant paths.
 const RESERVED_PATHS = new Set(["api", "_next", "favicon.ico"]);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip reserved paths

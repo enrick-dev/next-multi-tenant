@@ -1,7 +1,8 @@
+import { formatHSLString } from "@dheme/sdk";
 import type { GenerateThemeResponse, ColorTokens, HSLColor } from "@dheme/sdk";
 
 function hsl(color: HSLColor): string {
-  return `hsl(${color.h} ${color.s}% ${color.l}%)`;
+  return `hsl(${formatHSLString(color)})`;
 }
 
 function tokensToCSSVars(tokens: ColorTokens): string {

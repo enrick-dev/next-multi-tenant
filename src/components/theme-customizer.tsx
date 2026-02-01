@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { DhemeClient } from "@dheme/sdk";
+import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  DhemeClient,
+  formatHSLString,
+  isValidHex,
+  RateLimitError,
+  AuthenticationError,
+  ValidationError,
+  NetworkError,
+} from "@dheme/sdk";
 import type { GenerateThemeResponse, HSLColor } from "@dheme/sdk";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,10 +30,13 @@ const DHEME_SIGNUP_URL = "https://theme.dheme.com/register";
 const DHEME_LOGIN_URL = "https://theme.dheme.com/login";
 
 function hslToCssValue(color: HSLColor): string {
-  return `hsl(${color.h} ${color.s}% ${color.l}%)`;
+  return `hsl(${formatHSLString(color)})`;
 }
 
-function applyThemeToDOM(theme: GenerateThemeResponse, mode: "light" | "dark") {
+function applyThemeToDOM(
+  theme: GenerateThemeResponse,
+  mode: "light" | "dark"
+) {
   const tokens = theme.colors[mode];
   const root = document.documentElement;
 
@@ -77,6 +88,7 @@ export function ThemeCustomizer({
   const [lastTheme, setLastTheme] = useState<GenerateThemeResponse | null>(
     null
   );
+  const lastThemeRef = useRef<GenerateThemeResponse | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_DHEME_API_KEY;
   const hasApiKey = Boolean(apiKey);
@@ -88,8 +100,34 @@ export function ThemeCustomizer({
       : "light";
   }, []);
 
+  // Keep ref in sync for MutationObserver callback
+  useEffect(() => {
+    lastThemeRef.current = lastTheme;
+  }, [lastTheme]);
+
+  // Observe dark mode class changes and re-apply theme
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      if (lastThemeRef.current) {
+        applyThemeToDOM(lastThemeRef.current, detectMode());
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, [detectMode]);
+
   const handleGenerate = useCallback(async () => {
     if (!apiKey) return;
+
+    if (!isValidHex(primaryColor)) {
+      setError("Invalid HEX color. Use format like #3b82f6.");
+      return;
+    }
 
     setIsGenerating(true);
     setError(null);
@@ -106,7 +144,20 @@ export function ThemeCustomizer({
       setLastTheme(data);
       applyThemeToDOM(data, detectMode());
     } catch (err) {
-      if (err instanceof Error) {
+      if (err instanceof RateLimitError) {
+        setError(
+          `Rate limit exceeded. Resets at ${new Date(err.resetAt).toLocaleDateString()}.`
+        );
+      } else if (err instanceof AuthenticationError) {
+        setError("Invalid API key. Check your NEXT_PUBLIC_DHEME_API_KEY.");
+      } else if (err instanceof ValidationError) {
+        const fieldErrors = err.errors
+          ? Object.values(err.errors).flat().join(", ")
+          : err.message;
+        setError(`Validation error: ${fieldErrors}`);
+      } else if (err instanceof NetworkError) {
+        setError("Network error. Check your connection and try again.");
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Failed to generate theme");
@@ -117,27 +168,8 @@ export function ThemeCustomizer({
   }, [apiKey, primaryColor, radius, saturation, contrast, detectMode]);
 
   const handleReset = useCallback(() => {
-    // Reload to restore the original server-injected theme
     window.location.reload();
   }, []);
-
-  // Apply theme in both modes when dark mode toggles
-  const handleApplyToCurrentMode = useCallback(() => {
-    if (lastTheme) {
-      applyThemeToDOM(lastTheme, detectMode());
-    }
-  }, [lastTheme, detectMode]);
-
-  // Listen for class changes on html element (dark mode toggle)
-  if (typeof window !== "undefined" && lastTheme) {
-    const observer = new MutationObserver(() => {
-      handleApplyToCurrentMode();
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-  }
 
   return (
     <>
@@ -147,7 +179,11 @@ export function ThemeCustomizer({
         className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-110 active:scale-95"
         aria-label="Theme customizer"
       >
-        {open ? <X className="h-5 w-5" /> : <Paintbrush className="h-5 w-5" />}
+        {open ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <Paintbrush className="h-5 w-5" />
+        )}
       </button>
 
       {/* Customizer panel */}
@@ -170,10 +206,8 @@ export function ThemeCustomizer({
 
             <CardContent className="space-y-4">
               {!hasApiKey ? (
-                // Auth gate: no API key
                 <AuthGate />
               ) : (
-                // Customizer controls
                 <>
                   {/* Primary color */}
                   <div className="space-y-2">

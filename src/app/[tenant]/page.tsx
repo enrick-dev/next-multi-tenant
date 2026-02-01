@@ -9,8 +9,43 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Palette, Layers, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Palette,
+  Layers,
+  Zap,
+  TrendingUp,
+  HeartPulse,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
+
+const tenantHero: Record<
+  string,
+  { headline: string; subtitle: string; cta: string; icon: React.ElementType }
+> = {
+  acme: {
+    headline: "Smart financial tools for modern teams",
+    subtitle:
+      "Track portfolios, monitor transactions, and manage revenue — all in a single dashboard built on Dheme theming.",
+    cta: "Explore Fintech Dashboard",
+    icon: TrendingUp,
+  },
+  bloom: {
+    headline: "Patient-first health management",
+    subtitle:
+      "Streamline appointments, manage patient records, and coordinate care with a modern CRM powered by Dheme.",
+    cta: "Explore Health CRM",
+    icon: HeartPulse,
+  },
+  nova: {
+    headline: "Creative project management, reimagined",
+    subtitle:
+      "Kanban boards, time tracking, and client project oversight — all themed dynamically with Dheme.",
+    cta: "Explore Creative ERP",
+    icon: Sparkles,
+  },
+};
 
 interface TenantPageProps {
   params: Promise<{ tenant: string }>;
@@ -19,27 +54,35 @@ interface TenantPageProps {
 export default async function TenantPage({ params }: TenantPageProps) {
   const { tenant } = await params;
   const config = getTenantConfig(tenant);
+  const hero = tenantHero[config.slug] ?? tenantHero.acme;
+  const HeroIcon = hero.icon;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
       {/* Hero */}
       <section className="space-y-6 pb-12 pt-8">
-        <Badge variant="secondary" className="text-xs">
-          Tenant: {config.slug}
-        </Badge>
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Welcome to{" "}
-          <span className="text-primary">{config.name}</span>
-        </h1>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs">
+            Tenant: {config.slug}
+          </Badge>
+          <Badge variant="outline" className="text-xs">
+            {config.description}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-3">
+          <HeroIcon className="h-10 w-10 text-primary" />
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            <span className="text-primary">{config.name}</span>
+          </h1>
+        </div>
         <p className="max-w-2xl text-lg text-muted-foreground">
-          {config.description}. This page is themed dynamically using Dheme —
-          every tenant gets its own color palette, applied server-side with zero
-          client JavaScript.
+          {hero.headline}
         </p>
+        <p className="max-w-2xl text-muted-foreground">{hero.subtitle}</p>
         <div className="flex gap-3">
           <Button asChild>
             <Link href="/demo">
-              View Components <ArrowRight className="ml-2 h-4 w-4" />
+              {hero.cta} <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <Button variant="outline" asChild>
@@ -72,8 +115,8 @@ export default async function TenantPage({ params }: TenantPageProps) {
             <Layers className="mb-2 h-8 w-8 text-primary" />
             <CardTitle>Multi-Tenant</CardTitle>
             <CardDescription>
-              Middleware detects the subdomain and rewrites to the correct
-              tenant route. Add new tenants with a single config entry.
+              Proxy detects the subdomain and rewrites to the correct tenant
+              route. Add new tenants with a single config entry.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -83,8 +126,8 @@ export default async function TenantPage({ params }: TenantPageProps) {
             <Zap className="mb-2 h-8 w-8 text-primary" />
             <CardTitle>Mock or Live</CardTitle>
             <CardDescription>
-              Works instantly with pre-generated mocks. Set your Dheme API key
-              to fetch real themes from the API.
+              Works instantly with pre-generated mocks. Set your Dheme API key to
+              fetch real themes from the API.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -98,7 +141,7 @@ export default async function TenantPage({ params }: TenantPageProps) {
             {
               step: "1",
               title: "Subdomain detected",
-              desc: `You accessed ${config.slug}.localhost — the middleware extracts "${config.slug}" as the tenant.`,
+              desc: `You accessed ${config.slug}.localhost — the proxy extracts "${config.slug}" as the tenant.`,
             },
             {
               step: "2",

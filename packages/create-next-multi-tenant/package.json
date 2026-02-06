@@ -1,0 +1,50 @@
+{
+  "name": "create-next-multi-tenant",
+  "version": "1.0.0",
+  "description": "Create Next.js multi-tenant apps with Dheme theming",
+  "type": "module",
+  "bin": {
+    "create-next-multi-tenant": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "nextjs",
+    "multi-tenant",
+    "saas",
+    "dheme",
+    "theming",
+    "shadcn",
+    "tailwind",
+    "create"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "@inquirer/prompts": "^7.2.1",
+    "picocolors": "^1.1.1",
+    "ora": "^8.1.1",
+    "fs-extra": "^11.2.0",
+    "execa": "^9.5.2",
+    "open": "^10.1.0",
+    "validate-npm-package-name": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.17.12",
+    "@types/validate-npm-package-name": "^4.0.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,8 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# My Multi-Tenant App
+
+A Next.js multi-tenant application with dynamic theming powered by [Dheme](https://dheme.com).
 
 ## Getting Started
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev
@@ -14,23 +16,103 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Access Your Tenants
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Each tenant has its own subdomain:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [http://acme.localhost:3000](http://acme.localhost:3000) — ACME Finance (Fintech)
+- [http://bloom.localhost:3000](http://bloom.localhost:3000) — Bloom Health (Healthcare)
+- [http://nova.localhost:3000](http://nova.localhost:3000) — Nova Creative (Creative Agency)
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── [tenant]/           # Dynamic tenant routes
+│   │   ├── layout.tsx      # Theme CSS injection
+│   │   ├── page.tsx        # Tenant landing page
+│   │   └── demo/page.tsx   # Industry demo
+│   ├── api/dheme/          # OAuth callback
+│   └── globals.css         # Tailwind + CSS variables
+├── components/
+│   ├── demos/              # Industry-specific demos
+│   ├── ui/                 # UI components
+│   └── theme-customizer.tsx
+├── config/
+│   └── tenants.ts          # Tenant configuration
+├── lib/
+│   └── theme/              # Theme utilities
+└── proxy.ts                # Subdomain routing
+```
+
+## Adding a New Tenant
+
+1. Edit `src/config/tenants.ts`:
+
+```typescript
+export const TENANTS: TenantConfig[] = [
+  // ... existing tenants
+  {
+    slug: "mycompany",
+    name: "My Company",
+    description: "Your company description",
+    themeRequest: {
+      theme: "#3B82F6",  // Primary color
+      radius: 0.5,       // Border radius (0-2)
+    },
+  },
+];
+```
+
+2. Access at `http://mycompany.localhost:3000`
+
+## Theme Customizer
+
+Click the paintbrush button (bottom-right) to open the live theme customizer:
+
+1. Adjust primary color, radius, saturation, and contrast
+2. Click "Generate Theme" to preview changes
+3. Generated themes are applied instantly
+
+## Environment Variables
+
+```bash
+# .env.local
+
+# Server-side theme generation
+DHEME_API_KEY=your_api_key
+
+# Client-side theme customizer
+NEXT_PUBLIC_DHEME_API_KEY=your_api_key
+```
+
+Without API keys, the app uses mock themes for development.
+
+## Deployment
+
+### Vercel
+
+1. Push to GitHub
+2. Import to Vercel
+3. Add environment variables
+4. Configure wildcard domain (`*.yourdomain.com`)
+
+### Subdomain Setup
+
+For production, configure your DNS with a wildcard record:
+
+```
+*.yourdomain.com → your-app.vercel.app
+```
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Dheme Documentation](https://dheme.com/docs)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Tailwind CSS](https://tailwindcss.com)
+- [shadcn/ui](https://ui.shadcn.com)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

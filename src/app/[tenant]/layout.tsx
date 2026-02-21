@@ -1,8 +1,8 @@
 import { getTenantConfig } from "@/config/tenants";
-import { getTheme } from "@/lib/theme/get-theme";
-import { themeToCss } from "@/lib/theme/theme-to-css";
 import { TenantNav } from "@/components/tenant-nav";
-import { ThemeCustomizer } from "@/components/theme-customizer";
+import { ThemeApplier } from "@/components/theme-applier";
+import { generateThemeStyles } from "@dheme/next/server";
+import { DhemeProvider, ThemeGenerator } from "@dheme/next";
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -22,26 +22,67 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * generateThemeStyles returns bare HSL values ("h s% l%").
+ * globals.css uses var(--primary) directly as a CSS color, so the value
+ * must be a valid color — wrap each bare HSL token in hsl().
+ */
+function wrapHsl(css: string): string {
+  return css.replace(
+    /(--[\w-]+):\s*([\d.]+\s+[\d.]+%\s+[\d.]+%)/g,
+    "$1: hsl($2)",
+  );
+}
+
 export default async function TenantLayout({
   children,
   params,
 }: TenantLayoutProps) {
   const { tenant } = await params;
   const config = getTenantConfig(tenant);
-  const theme = await getTheme(tenant);
-  const css = themeToCss(theme);
+  const apiKey = process.env.DHEME_API_KEY;
+
+  const { theme, ...themeParams } = config.themeRequest;
+
+  // Server-side CSS injection for zero FOUC.
+  // generateThemeStyles has its own LRU cache, so subsequent requests are free.
+  let inlineCss = "";
+  if (apiKey) {
+    try {
+      const [lightCss, darkCss] = await Promise.all([
+        generateThemeStyles({ apiKey, theme, themeParams, mode: "light" }),
+        generateThemeStyles({ apiKey, theme, themeParams, mode: "dark" }),
+      ]);
+      inlineCss = `:root{${wrapHsl(lightCss)}}\n.dark{${wrapHsl(darkCss)}}`;
+    } catch (error) {
+      console.warn(
+        "[dheme] Server-side theme generation failed — client will handle it:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: css }} />
-      <div className="min-h-screen bg-background text-foreground">
-        <TenantNav tenantSlug={config.slug} tenantName={config.name} />
-        <main>{children}</main>
-        <ThemeCustomizer
-          tenantSlug={config.slug}
-          initialPrimaryColor={config.themeRequest.theme}
-        />
-      </div>
+      {inlineCss && <style dangerouslySetInnerHTML={{ __html: inlineCss }} />}
+      {/*
+        autoApply={false}: DhemeProvider manages state and context but does NOT
+        write CSS variables — ThemeApplier does that in hsl() format so it's
+        compatible with the @theme inline setup in globals.css.
+      */}
+      <DhemeProvider
+        apiKey={apiKey ?? ""}
+        theme={theme}
+        themeParams={themeParams}
+        autoApply={false}
+      >
+        <div className="min-h-screen bg-background text-foreground">
+          <TenantNav tenantSlug={config.slug} tenantName={config.name} />
+          <main>{children}</main>
+          <ThemeApplier />
+          <ThemeGenerator defaultTheme={theme} />
+        </div>
+      </DhemeProvider>
     </>
   );
 }

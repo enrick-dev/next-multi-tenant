@@ -1,18 +1,19 @@
 "use client";
 
-import { useTheme } from "next-themes";
+import { useTheme, useThemeActions } from "@dheme/next";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ThemeModeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { mode } = useTheme();
+  const { setMode } = useThemeActions();
 
   return (
     <Button
       variant="ghost"
       size="icon"
       className="relative h-8 w-8"
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      onClick={() => setMode(mode === "dark" ? "light" : "dark")}
       suppressHydrationWarning
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
